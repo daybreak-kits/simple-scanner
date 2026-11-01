@@ -280,6 +280,46 @@ def new(*args, **kwargs) -> Url:
     return Url(*args, **kwargs)
 
 
+def parse_target_ports(spec: str) -> tuple[str, list[int] | None]:
+    """拆分目标字符串中的 host 与端口部分，如 'host:80,443,8000-8100' -> ('host', [80, 443, 8000, ..., 8100])
+
+    Args:
+        spec (str): 目标字符串，host 可为 IP/域名/CIDR 字符串（本函数只拆分，CIDR 展开交给 network.Scanner.parse_address）
+
+    Returns:
+        tuple[str, list[int] | None]: (host, 端口列表)；无端口段时返回 (spec, None)
+
+    Raises:
+        ValueError: 端口非法时抛出，闭合校验 1<=start<=end<=65535
+    """
+    if ':' not in spec:
+        return spec, None
+    host, _, port_spec = spec.partition(':')
+
+    def check(text: str) -> int:
+        try:
+            port = int(text)
+        except ValueError:
+            raise ValueError('invalid port "{}" in target "{}"'.format(text, spec)) from None
+        if not 1 <= port <= 65535:
+            raise ValueError('port {} out of range 1-65535 in target "{}"'.format(port, spec))
+        return port
+
+    ports: list[int] = []
+    for item in port_spec.split(','):
+        bounds = item.split('-')
+        if len(bounds) == 1:
+            ports.append(check(bounds[0]))
+        elif len(bounds) == 2:
+            start, end = check(bounds[0]), check(bounds[1])
+            if start > end:
+                raise ValueError('port range {}-{} invalid in target "{}"'.format(start, end, spec))
+            ports.extend(range(start, end + 1))
+        else:
+            raise ValueError('invalid port item "{}" in target "{}"'.format(item, spec))
+    return host, ports
+
+
 if __name__ == '__main__':
     assert (
         'protocol=, username=, password=, host=eg.cc, port=0, path=/, params={}, query={}, fragment='

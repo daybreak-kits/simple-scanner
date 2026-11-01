@@ -44,6 +44,7 @@ class Plugin(plugin.PluginBase):
             port=80,
             ssl_protocol='https',
             ssl_port=443,
+            requires=['http', 'https'],
         )
 
     def run(self, url: urlutil.Url, *args, **kwargs) -> Tuple[bool, Any]:

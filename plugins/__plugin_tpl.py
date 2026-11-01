@@ -30,6 +30,7 @@ class Plugin(plugin.PluginBase):
             ssl_protocol='https',
             # 字符型，默认检测加密端口号
             ssl_port=7001,
+            requires=['http', 'https'],
         )
 
     def run(self, url: urlutil.Url, *args, **kwargs) -> Tuple[bool, Any]:
@@ -81,6 +82,9 @@ class Plugin(plugin.PluginBase):
         # ! 事实上这个插件是失败的，因为异步速度太快 Weblogic 会锁账户，这个插件的爆破没有意义，只是为了演示异步池子怎么使用
         # 等待结果返回，并判断
         for err, response in async_pool.get_yeild():
+            # 请求失败（瞬态网络错误等）时 rq 返回 (err, None)，跳过该次尝试，避免单次抖动打崩整个插件
+            if err or response is None:
+                continue
             # 登录成功会跳转 /console 页面，登录失败会跳转 /console/login/LoginForm.jsp
             if 'Location' in response.headers and '/console/login/LoginForm.jsp' not in response.headers['Location']:
                 return True, response.request.body

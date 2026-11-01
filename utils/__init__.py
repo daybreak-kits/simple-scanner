@@ -2,7 +2,7 @@ import csv
 import pathlib
 from typing import Dict, List, Union
 
-from utils import language, net_echo, state
+from utils import language, state
 
 
 class PluginType(state.StateBase):
@@ -44,8 +44,6 @@ DEFAULT_USER_AGENT_MOB = [
 ]
 DEFAULT_USER_AGENT = DEFAULT_USER_AGENT_LNX + DEFAULT_USER_AGENT_MAC + DEFAULT_USER_AGENT_WIN
 
-NET_ECHO: net_echo.EchoServiceBase = None
-
 
 def save_csv(
     values: List[Union[Dict, List]],
@@ -56,6 +54,8 @@ def save_csv(
     newline: str = '',
     column_limit: int = 22000,
 ):
+    if not values:
+        return
     # CSV单个单元格字符数量限制为32767，考虑到引号会"转义，字符数量限制在 22000 以内，但是还是有可能超单元格字数限制，比如假设极端情况一大半的字符都是"
     with open(filename, 'w', buffering, encoding, errors, newline) as _file:
         if isinstance(values[0], List):
